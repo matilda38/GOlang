@@ -3,11 +3,8 @@
   <component name="ChangeListManager">
     <list default="true" id="0757d1f6-15df-4d76-85c3-ef02ad6cc546" name="Default" comment="">
       <change type="DELETED" beforePath="$PROJECT_DIR$/.idea/workspace.xml" afterPath="" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/Prac2/comm.go" afterPath="$PROJECT_DIR$/src/LogAgentInGo/LogAgentInGo.go" />
-      <change type="MOVED" beforePath="$PROJECT_DIR$/src/Practice/prac.go" afterPath="$PROJECT_DIR$/src/TCPInGo/TcpIn.go" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/github.com/glycerine/rbuf" afterPath="$PROJECT_DIR$/src/github.com/glycerine/rbuf" />
       <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/github.com/robertkowalski/graylog-golang" afterPath="$PROJECT_DIR$/src/github.com/robertkowalski/graylog-golang" />
-      <change type="MODIFICATION" beforePath="$PROJECT_DIR$/src/main.go" afterPath="$PROJECT_DIR$/src/main.go" />
     </list>
     <option name="EXCLUDED_CONVERTED_TO_IGNORED" value="true" />
     <option name="TRACKING_ENABLED" value="true" />
@@ -394,7 +391,8 @@
     <option name="myLimit" value="2678400000" />
   </component>
   <component name="VcsManagerConfiguration">
-    <option name="LAST_COMMIT_MESSAGE" value="" />
+    <MESSAGE value="The second commit" />
+    <option name="LAST_COMMIT_MESSAGE" value="The second commit" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
