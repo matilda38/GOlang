@@ -1,4 +1,4 @@
-package practice
+package TCPInGo
 
 import (
 	"fmt"
@@ -13,7 +13,7 @@ func CheckError(err error) {
 	}
 }
 
-func main() {
+func TCPInGo() {
 	ServerAddr,err := net.ResolveUDPAddr("udp","0.0.0.0:12201")
 	CheckError(err)
 

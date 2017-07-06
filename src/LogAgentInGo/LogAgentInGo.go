@@ -1,4 +1,4 @@
-package prac2
+package LogAgentInGo
 
 import (
 	"bytes"
