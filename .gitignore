@@ -3,3 +3,5 @@ bin/
 pkg/
 TCPInGo/
 github.com/
+LogAgentInGo/
+golang.org/
