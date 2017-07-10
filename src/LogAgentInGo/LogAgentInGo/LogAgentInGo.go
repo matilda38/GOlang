@@ -3,12 +3,10 @@ package LogAgentInGo
 import (
 	"bytes"
 	"compress/gzip"
-	"encoding/binary"
 	"math"
 	"net"
 	"log"
 	"crypto/rand"
-	"github.com/glycerine/rbuf"
 	"fmt"
 )
 
@@ -28,9 +26,17 @@ type Config struct{
 	Protocol string
 }
 
+type OutputChannel chan []byte
+type InputChannel chan []byte
+
+type RingBuffer struct{
+	Input InputChannel
+	Output OutputChannel
+}
+
 type Gelf struct{
 	Config Config
-	RingBuffer rbuf.FixedSizeRingBuf
+	RingBuffer RingBuffer
 }
 
 func New(config Config) *Gelf{
@@ -53,21 +59,32 @@ func New(config Config) *Gelf{
 		config.Protocol = "UDP"
 	}
 
-	rb := rbuf.NewFixedSizeRingBuf(1460)
+	oc := make(chan []byte, 1460)
+	ic := make(chan []byte)
+	rb := RingBuffer{ic,oc}
 
 	g:= &Gelf{
 		Config : config,
-		RingBuffer : *rb,
+		RingBuffer: rb,
 	}
+
 	return g
 }
 
-func (g *Gelf) Log(message string){
+func (g *Gelf) InputMessage(message chan<- string) {
+	sampleDoc := "{ \"version\" : \"1.1\", \"host\": \"example.org\", \"short_message\": \"A short message that helps you identify what is going on\", \"full_message\": \"Backtrace here\n\nmore stuff\"}"
+	message <- sampleDoc
+}
+
+func (g *Gelf) ProcessMessage(message <-chan string){
+	messageToProcess := <- message
+
 	if g.Config.Protocol == "UDP"{
-		g.LogUDP(message)
-	} else{
-		message = fmt.Sprint(message, "\000")
-		g.Send([]byte(message))
+		g.LogUDP(messageToProcess)
+		close(g.RingBuffer.Input)
+	} else {
+		messageToProcess = fmt.Sprint(messageToProcess, "\000")
+		g.RingBuffer.Input <- ([]byte)(messageToProcess)
 	}
 }
 
@@ -75,8 +92,7 @@ func (g *Gelf) Log(message string){
 //1. compress
 //2. if the length of compressed data is larger than the chuncksize,
 // slice it to each chunk and send each chunk.
-
-func (g *Gelf) LogUDP(message string){
+func (g *Gelf) LogUDP(message string) {
 	compressed := g.Compress([]byte(message))
 	chunksize := g.Config.MaxChunkSizeWan
 
@@ -91,12 +107,13 @@ func (g *Gelf) LogUDP(message string){
 		//until length of the message
 		for i, index := 0,0; i < length; i, index = i + chunksize , index+1{
 			packet := g.CreateChunkedMessage(index, chunkCountInt, messageId, &compressed)
-			g.Send(packet.Bytes())
+			g.RingBuffer.Input <- packet.Bytes()
 		}
 	} else{
-		g.Send(compressed.Bytes())
+		g.RingBuffer.Input <- compressed.Bytes()
 	}
 }
+
 
 func (g *Gelf) CreateChunkedMessage(index int, chunkCountInt int, messageId []byte, compressed *bytes.Buffer) bytes.Buffer{
 	var packet bytes.Buffer
@@ -127,39 +144,30 @@ func (g *Gelf) Compress(b []byte) bytes.Buffer{
 	return buf
 }
 
-func (g *Gelf) IntToBytes (i int) []byte {
-	buf := new(bytes.Buffer)
-
-	err := binary.Write(buf, binary.LittleEndian, int8(i))
-	if err != nil{
-		log.Print("%s", err)
-	}
-	return buf.Bytes()
-}
-
 //For UDP Gelf
 //1. receive data
 //2. write it in ringbuffer
 //3. setup for connection
 //4. send data in ringbuffer
-func (g *Gelf) Send (b []byte){
-	var err error
-	sizeToSend := len(b)
-
-	_, err = g.RingBuffer.Write(b)
-
-	if err != nil{
-		log.Print(err)
-		return
-	}
-
+//Consumer
+func (g *Gelf) Send (){
 	if g.Config.Protocol == "UDP"{
 		g.ConnectUDP()
 	} else {
 		g.ConnectTCP()
 	}
+}
 
-	g.RingBuffer.Advance(sizeToSend)
+func (g *Gelf) Consume(){
+	for input := range g.RingBuffer.Input{
+		select {
+		case g.RingBuffer.Output <- input:
+		default:
+			<-g.RingBuffer.Output
+			g.RingBuffer.Output <- input
+		}
+	}
+	close(g.RingBuffer.Output)
 }
 
 func (g *Gelf) ConnectUDP(){
@@ -174,7 +182,10 @@ func (g *Gelf) ConnectUDP(){
 		log.Printf("%s", err)
 		return
 	}
-	conn.Write(g.RingBuffer.Bytes())
+
+	for output := range g.RingBuffer.Output{
+		conn.Write(output)
+	}
 }
 
 // For TCP GELF : no chunking no compressing
@@ -186,5 +197,8 @@ func (g *Gelf) ConnectTCP() {
 		return
 	}
 	defer conn.Close()
-	conn.Write(g.RingBuffer.Bytes())
+
+	for output := range g.RingBuffer.Output{
+		conn.Write(output)
+	}
 }
