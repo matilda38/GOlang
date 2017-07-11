@@ -1,5 +1,11 @@
 package Dashinsert
 
+import (
+	"strings"
+	"strconv"
+	"fmt"
+)
+/*
 func Do(input string){
 	var ans string = ""
 	for i, v := range input{
@@ -16,4 +22,32 @@ func Do(input string){
 		}
 	}
 	print(ans)
+}
+*/
+func Do(input string){
+	exSlice := strings.Split(input,"")
+	var anSlice []string
+	for i, v := range exSlice{
+
+		if i == len(exSlice) -1{
+			anSlice = append(anSlice, v)
+			break
+		}
+
+		n, err:= strconv.ParseInt(v,10,32)
+		n2, err2 := strconv.ParseInt(exSlice[i+1], 10,32)
+
+		if err!= nil || err2 != nil{
+			return
+		}
+
+		if n % 2 == 0 && n2 % 2 == 0{
+			anSlice = append(anSlice, v + "*")
+		} else if n % 2 == 1 && n2 % 2 == 1{
+			anSlice = append(anSlice, v + "-")
+		} else {
+			anSlice = append(anSlice, v)
+		}
+	}
+	fmt.Print(strings.Join(anSlice, ""))
 }
